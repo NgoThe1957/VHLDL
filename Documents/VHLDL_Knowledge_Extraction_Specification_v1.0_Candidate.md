@@ -188,3 +188,827 @@ DECISION NEEDED:
 NEXT ACTION:
 ESCALATION:
 ```
+
+============================================================
+23. ERROR → ACTION → ACCEPTANCE PROTOCOL
+QUY TRÌNH XỬ LÝ LỖI TỪ PHÁT HIỆN ĐẾN NGHIỆM THU
+============================================================
+
+MỤC ĐÍCH
+
+Chương này quy định cách xử lý một lỗi cụ thể từ khi phát hiện
+cho đến khi có kết luận PASS / HOLD / BLOCKED.
+
+Mục tiêu là trả lời rõ 07 câu hỏi:
+
+1. Gặp lỗi này → mở đâu?
+2. Kiểm tra gì?
+3. Ghi ở đâu?
+4. Ai xử lý?
+5. Khi nào được PASS?
+6. Khi nào phải HOLD / BLOCKED?
+7. Khi nào lỗi phải chuyển thành Regression Test hoặc Change Request?
+
+
+------------------------------------------------------------
+23.1. QUY TẮC GỐC
+------------------------------------------------------------
+
+Khi phát hiện bất kỳ lỗi nào:
+
+KHÔNG SỬA NGAY.
+
+Phải đi theo chuỗi:
+
+PHÁT HIỆN
+→ ĐỊNH VỊ
+→ PHÂN LOẠI
+→ GHI NHẬN
+→ XÁC ĐỊNH NGUYÊN NHÂN
+→ XÁC ĐỊNH OWNER
+→ XỬ LÝ
+→ RE-CHECK
+→ REGRESSION KHI CẦN
+→ PASS / HOLD / BLOCKED
+
+Không được bỏ qua bước GHI NHẬN chỉ vì lỗi có vẻ nhỏ.
+
+Không được coi một lỗi là PASS chỉ vì đã sửa.
+
+PASS phải có Evidence.
+
+
+------------------------------------------------------------
+23.2. LỖI NỘI DUNG / OCR
+------------------------------------------------------------
+
+Ví dụ:
+
+PDF ghi đúng nhưng Markdown có:
+- Sai chữ.
+- Sai dấu.
+- Sai số.
+- Sai năm.
+- Sai từ.
+- Ký tự bị mất hoặc biến dạng.
+
+MỞ:
+
+SOURCE PDF
++
+MARKDOWN ARTIFACT
+
+KIỂM TRA:
+
+- Trang PDF.
+- Vị trí đoạn.
+- Nội dung nguyên bản.
+- Markdown tương ứng.
+- Lỗi có phải OCR corruption không?
+- Lỗi có phải Extraction Rule không?
+- Lỗi có lặp lại theo Pattern không?
+
+GHI:
+
+DATA_QUALITY_LOG
+
+Nếu lỗi có tính hệ thống:
+
+ERROR_TAXONOMY
++
+REGRESSION_TEST
+
+OWNER:
+
+DATA / EXTRACTION
+
+PASS KHI:
+
+- Markdown khớp nguồn.
+- Evidence được lưu.
+- Không còn sai lệch tại vị trí đã kiểm tra.
+
+PHẢI HOLD / BLOCKED KHI:
+
+- Không xác định được nội dung gốc.
+- Nguồn không đủ bằng chứng.
+- Cùng một Pattern xuất hiện trên nhiều Artifact.
+- Có nguy cơ lỗi lan sang nhiều Volume.
+
+
+------------------------------------------------------------
+23.3. LỖI MẤT TRANG / PAGE MAPPING
+------------------------------------------------------------
+
+MỞ:
+
+PDF
++
+MARKDOWN
++
+TRACEABILITY / PAGE MAPPING
+
+KIỂM TRA:
+
+PRINTED PAGE
+↔
+PDF PAGE
+↔
+MARKDOWN
+
+KIỂM TRA THÊM:
+
+- Có trang nguồn nhưng Markdown không có không?
+- Page Number có bị lệch không?
+- Printed Page có bị nhầm với PDF Page không?
+- Có thể truy ngược từ Markdown về đúng trang nguồn không?
+
+GHI:
+
+DATA_QUALITY_LOG
++
+TRACEABILITY FINDING
+
+OWNER:
+
+DATA / EXTRACTION
+
+PASS KHI:
+
+Có thể xác định đúng quan hệ:
+
+Printed Page
+↔
+PDF Page
+↔
+Markdown Location
+
+và có Evidence.
+
+PHẢI HOLD / BLOCKED KHI:
+
+- Không xác định được Page Mapping.
+- Mapping sai trên diện rộng.
+- Không thể bảo đảm Traceability.
+
+
+------------------------------------------------------------
+23.4. LỖI ANCHOR / RELATIVE LINK
+------------------------------------------------------------
+
+MỞ:
+
+MARKDOWN
++
+ANCHOR_ID
++
+RELATIVE_LINK
+
+KIỂM TRA:
+
+1. Anchor có tồn tại không?
+2. Anchor có duy nhất không?
+3. Link có Destination không?
+4. Destination có thực sự tồn tại không?
+5. Link có hoạt động không?
+6. Link có dẫn đúng Artifact không?
+7. Có Reverse Traceability khi yêu cầu không?
+
+GHI:
+
+DATA_QUALITY_LOG
++
+LINK_VALIDATION / REGRESSION
+
+OWNER:
+
+DATA / EXTRACTION
+
+hoặc
+
+TECHNICAL / DATA INTEGRATION
+
+tùy nguyên nhân.
+
+PASS KHI:
+
+Link thực sự hoạt động và dẫn đúng Artifact.
+
+Không được coi:
+
+"Workbook có ghi Link"
+
+là đủ điều kiện PASS.
+
+PHẢI HOLD / BLOCKED KHI:
+
+Lỗi Link / Anchor xuất hiện theo Pattern ở nhiều Artifact
+hoặc làm mất Traceability.
+
+
+------------------------------------------------------------
+23.5. LỖI ENTITY
+------------------------------------------------------------
+
+Ví dụ:
+
+- Entity bị nhận dạng sai.
+- Entity bị thiếu.
+- Entity bị trùng.
+- Entity bị gán nhầm loại.
+- Entity không có Source Evidence.
+
+MỞ:
+
+MARKDOWN
+→
+ENTITY SHEET
+→
+DATA DICTIONARY
+
+KIỂM TRA:
+
+- Entity Name.
+- Entity ID.
+- Alias.
+- Entity Type.
+- Person / Work / Place / Event / Dynasty...
+- Có trùng Entity không?
+- Có nhầm Entity khác không?
+- Source Evidence ở đâu?
+
+GHI:
+
+DATA_QUALITY_LOG
+
+Nếu lỗi lặp lại:
+
+REGRESSION_TEST
+
+OWNER:
+
+DATA / EXTRACTION
+
+PASS KHI:
+
+- Entity đúng.
+- Không trùng.
+- ID hợp lệ.
+- Có Source Evidence.
+- Entity Type đúng.
+
+PHẢI HOLD / BLOCKED KHI:
+
+- Không xác định được Entity từ nguồn.
+- Cần thay đổi Entity Schema.
+- Cần thay đổi quy tắc nhận dạng chung.
+
+
+------------------------------------------------------------
+23.6. LỖI WORKBOOK / INDEX
+------------------------------------------------------------
+
+Ví dụ:
+
+Markdown có thông tin nhưng Workbook / Index không có.
+
+MỞ:
+
+MARKDOWN
+→
+WORKBOOK / INDEX
+→
+DATA DICTIONARY
+→
+DEPENDENCY MATRIX
+
+KIỂM TRA:
+
+- Dữ liệu có tồn tại trong Markdown không?
+- Có Field tương ứng trong Workbook không?
+- Đã ghi đúng Sheet chưa?
+- Đúng ID chưa?
+- Sheet là Source Sheet hay Derived Sheet?
+- Có vi phạm Dependency không?
+- Dữ liệu có truy xuất được về nguồn không?
+
+GHI:
+
+DATA_QUALITY_LOG
+
+Nếu nguyên nhân là Schema:
+
+CHANGE_REQUEST
+
+OWNER:
+
+DATA / EXTRACTION
+
+PASS KHI:
+
+- Đúng Sheet.
+- Đúng Field.
+- Đúng ID.
+- Có Source Evidence.
+- Không phá vỡ Dependency.
+
+PHẢI HOLD / BLOCKED KHI:
+
+Schema hiện tại không thể chứa dữ liệu cần thiết.
+
+KHÔNG tự ý thêm Column / Sheet vào Baseline đã khóa.
+
+Phải tạo:
+
+SCHEMA CHANGE REQUEST
+
+
+------------------------------------------------------------
+23.7. LỖI SEARCH / HOVER
+------------------------------------------------------------
+
+MỞ:
+
+WORKBOOK
+→
+SEARCH / HOVER
+→
+MARKDOWN
+→
+DATA CONTRACT
+
+KIỂM TRA:
+
+- Entity có tồn tại không?
+- ID có đúng không?
+- Search Index có Record không?
+- Hover có dữ liệu không?
+- Link về nguồn có hoạt động không?
+- Website có đọc đúng Data Contract không?
+
+GHI:
+
+DATA_QUALITY_LOG
+
+PHÂN LOẠI:
+
+Nếu lỗi nằm ở Data:
+→ DATA ISSUE
+
+Nếu lỗi nằm ở Website:
+→ WEBSITE ISSUE
+
+Không sửa Data chỉ để che một lỗi UI.
+
+PASS KHI:
+
+Search / Hover trả đúng thông tin,
+đúng Entity,
+đúng ID,
+và có Traceability theo yêu cầu.
+
+PHẢI HOLD / BLOCKED KHI:
+
+Data Contract không đủ để Website thực hiện chức năng.
+
+
+------------------------------------------------------------
+23.8. LỖI CROSS-REFERENCE / RELATIONSHIP
+------------------------------------------------------------
+
+MỞ:
+
+MARKDOWN
+→
+CROSS_REFERENCE
+→
+RELATIONSHIP
+→
+ENTITY
+
+KIỂM TRA:
+
+- Source Entity.
+- Target Entity.
+- Relationship Type.
+- Evidence.
+- Link.
+- Có vòng lặp sai không?
+- Có Entity mồ côi không?
+- Quan hệ có thực sự được nguồn hỗ trợ không?
+
+GHI:
+
+DATA_QUALITY_LOG
++
+RELATIONSHIP_REGRESSION
+
+OWNER:
+
+DATA / EXTRACTION
+
+PASS KHI:
+
+Quan hệ có Evidence và truy xuất được theo yêu cầu.
+
+PHẢI HOLD / BLOCKED KHI:
+
+Không đủ nguồn để xác định quan hệ.
+
+KHÔNG SUY LUẬN.
+
+Nếu nguồn không đủ:
+
+UNKNOWN
+
+
+------------------------------------------------------------
+23.9. LỖI "KHÔNG BIẾT"
+------------------------------------------------------------
+
+Nếu người thực hiện không biết phải xử lý thế nào:
+
+KHÔNG ĐƯỢC TỰ QUYẾT ĐỊNH.
+
+Ghi:
+
+UNKNOWN
+hoặc
+OPEN
+hoặc
+NEEDS REVIEW
+
+Sau đó xác định nguyên nhân:
+
+Nếu Specification chưa quy định:
+→ CANDIDATE VALIDATION FINDING
+
+Nếu Prompt chưa quy định:
+→ PROMPT CHANGE REQUEST
+
+Nếu Schema chưa đủ:
+→ SCHEMA CHANGE REQUEST
+
+Nếu nguồn không đủ:
+→ SOURCE UNKNOWN
+
+Nếu Website không hỗ trợ:
+→ DATA CONTRACT / WEBSITE ISSUE
+
+Nếu ảnh hưởng Critical Path:
+→ PROJECT OFFICE REVIEW
+
+
+------------------------------------------------------------
+23.10. KHI NÀO KHÔNG CẦN DỪNG
+------------------------------------------------------------
+
+Không cần dừng toàn bộ công việc nếu:
+
+- Lỗi đơn lẻ.
+- Nguyên nhân rõ.
+- Nguồn xác định được.
+- Cách xử lý đã có trong Specification.
+- Không ảnh hưởng hệ thống.
+- Không lan sang Artifact khác.
+- Có thể xử lý và Re-check độc lập.
+
+QUY TRÌNH:
+
+GHI NHẬN
+→
+XỬ LÝ
+→
+RE-CHECK
+→
+PASS
+→
+TIẾP TỤC
+
+
+------------------------------------------------------------
+23.11. KHI NÀO PHẢI HOLD / BLOCKED
+------------------------------------------------------------
+
+PHẢI HOLD / BLOCKED khi xảy ra một trong các trường hợp:
+
+1. LỖI HỆ THỐNG
+
+Cùng một Pattern xuất hiện ở nhiều nơi.
+
+2. LỖI SOURCE / RETRIEVAL
+
+Không xác định được nguồn hoặc Page Mapping.
+
+3. LỖI SCHEMA
+
+Workbook / Data Model không chứa được dữ liệu cần thiết.
+
+4. LỖI PROMPT
+
+Prompt tạo ra cùng một lỗi lặp lại.
+
+5. LỖI TRACEABILITY
+
+Không thể truy ngược dữ liệu về nguồn.
+
+6. LỖI CRITICAL
+
+Có nguy cơ làm sai hàng loạt Artifact.
+
+7. CHƯA CÓ CÁCH XỬ LÝ
+
+Vấn đề ảnh hưởng đến Critical Path.
+
+Khi đó:
+
+HOLD / BLOCKED
+
+Không tự tìm cách "lách".
+
+
+------------------------------------------------------------
+23.12. CÁC TRƯỜNG HỢP AI KHÔNG ĐƯỢC TỰ QUYẾT ĐỊNH
+------------------------------------------------------------
+
+AI không tự quyết định khi:
+
+- Nguồn không đủ.
+- Hai nguồn mâu thuẫn.
+- Schema không đủ.
+- Prompt chưa quy định.
+- Lỗi có khả năng hệ thống.
+- Thay đổi Data Contract.
+- Thay đổi Baseline.
+- Thay đổi Master Prompt.
+- Thay đổi cấu trúc Workbook.
+
+Các trường hợp này phải chuyển:
+
+OPEN
+→
+PROJECT OFFICE REVIEW
+
+
+------------------------------------------------------------
+23.13. PHÂN VAI XỬ LÝ
+------------------------------------------------------------
+
+QA:
+
+- Phát hiện.
+- Định vị.
+- Phân loại.
+- Ghi nhận.
+- Đánh giá PASS / FAIL / HOLD.
+
+DATA / EXTRACTION:
+
+- Điều tra nguyên nhân.
+- Sửa Artifact theo quy trình được phép.
+- Tạo lại Output khi cần.
+- Cung cấp Evidence.
+
+PROMPT:
+
+- Xử lý khi nguyên nhân nằm ở Prompt / Rule.
+- Đề xuất Prompt Change Request.
+- Thực hiện Regression sau thay đổi.
+
+SCHEMA / DATA:
+
+- Xử lý khi nguyên nhân nằm ở Workbook / Data Model.
+- Đề xuất Schema Change Request khi cần.
+
+WEBSITE:
+
+- Xử lý khi lỗi nằm ở Presentation / API / UI.
+- Không tự thay đổi Source Data để chữa lỗi UI.
+
+PROJECT OFFICE:
+
+Quyết định khi có:
+
+- Thay đổi Baseline.
+- Thay đổi Prompt.
+- Thay đổi Schema.
+- Thay đổi Data Contract.
+- Lỗi Critical.
+- HOLD / GO.
+- Golden Acceptance.
+
+
+------------------------------------------------------------
+23.14. THẺ XỬ LÝ LỖI NHANH
+------------------------------------------------------------
+
+GẶP LỖI
+↓
+MỞ NGUỒN + ARTIFACT
+↓
+XÁC ĐỊNH VỊ TRÍ
+↓
+PHÂN LOẠI
+↓
+GHI DATA_QUALITY_LOG
+↓
+XÁC ĐỊNH OWNER
+↓
+LỖI ĐƠN LẺ?
+    |
+    +-- CÓ
+    |     ↓
+    |   XỬ LÝ
+    |     ↓
+    |   RE-CHECK
+    |     ↓
+    |   PASS
+    |     ↓
+    |   TIẾP TỤC
+    |
+    +-- KHÔNG
+          ↓
+       CÓ TÍNH HỆ THỐNG?
+          |
+          +-- CÓ → HOLD / BLOCKED
+          |
+          +-- KHÔNG
+                ↓
+         XÁC ĐỊNH NGUYÊN NHÂN
+                ↓
+       SOURCE / PROMPT / SCHEMA /
+       DATA / WEBSITE / QA
+                ↓
+          CHANGE REQUEST
+             KHI CẦN
+                ↓
+           REGRESSION
+             KHI CẦN
+                ↓
+          PASS / FAIL / HOLD
+
+
+------------------------------------------------------------
+23.15. BẢY NGUYÊN TẮC NHỚ NHANH
+------------------------------------------------------------
+
+1. KHÔNG BIẾT XỬ LÝ
+   ≠
+   ĐƯỢC PHÉP TỰ ĐOÁN.
+
+2. KHÔNG CHẮC CHẮN
+   ≠
+   PASS.
+
+3. LỖI HỆ THỐNG
+   ≠
+   SỬA TỪNG DÒNG RỒI TIẾP TỤC.
+
+4. THAY ĐỔI QUY TẮC
+   ≠
+   SỬA PROMPT TRỰC TIẾP.
+
+5. PASS
+   =
+   CÓ EVIDENCE.
+
+6. BLOCKED
+   =
+   CÓ OWNER + NEXT ACTION + ESCALATION.
+
+7. LỖI MỚI
+   =
+   CƠ HỘI BỔ SUNG HỆ THỐNG,
+   KHÔNG PHẢI LÝ DO ĐỂ DỰ ÁN BẾ TẮC.
+
+
+------------------------------------------------------------
+23.16. MẪU ERROR RECORD
+------------------------------------------------------------
+
+ERROR_ID:
+
+DATE:
+
+ARTIFACT:
+
+VOLUME:
+
+SOURCE_PAGE:
+
+ARTIFACT_LOCATION:
+
+ERROR_TYPE:
+
+DESCRIPTION:
+
+EVIDENCE:
+
+EXPECTED:
+
+ACTUAL:
+
+ROOT_CAUSE:
+
+OWNER:
+
+ACTION:
+
+REGRESSION_REQUIRED:
+YES / NO
+
+CHANGE_REQUEST_REQUIRED:
+YES / NO
+
+STATUS:
+
+OPEN
+IN_PROGRESS
+PASS
+FAILED
+HOLD
+BLOCKED
+
+NEXT_ACTION:
+
+ESCALATION:
+
+DATE_CLOSED:
+
+CLOSING_EVIDENCE:
+
+
+------------------------------------------------------------
+23.17. ĐIỀU KIỆN ĐÓNG LỖI
+------------------------------------------------------------
+
+Một lỗi chỉ được đóng khi:
+
+1. Nguyên nhân đã được xác định hoặc được chấp nhận là UNKNOWN
+   theo quy trình.
+
+2. Action đã được thực hiện.
+
+3. Artifact đã được Re-check.
+
+4. Evidence được lưu.
+
+5. Không còn sai lệch tại vị trí kiểm tra.
+
+6. Nếu lỗi có tính hệ thống:
+   Regression Test đã được thực hiện.
+
+7. Nếu có thay đổi Prompt / Schema / Data Contract:
+   Change Request đã được xử lý và phiên bản liên quan
+   đã được cập nhật.
+
+8. Project Office / Owner có thẩm quyền đã xác nhận trạng thái
+   khi lỗi thuộc Critical Path hoặc Acceptance Gate.
+
+KẾT QUẢ CUỐI:
+
+PASS
+hoặc
+HOLD
+hoặc
+BLOCKED
+
+Không đóng lỗi bằng trạng thái mơ hồ.
+
+
+------------------------------------------------------------
+23.18. NGUYÊN TẮC DÙNG CHƯƠNG NÀY TRONG VALIDATION
+------------------------------------------------------------
+
+Chương này phải được kiểm chứng bằng các lỗi thực tế của:
+
+LSVN_001
++
+TTVHVN_039
+
+Mỗi lỗi thực tế phải có thể trả lời được:
+
+GẶP LỖI NÀY
+→
+MỞ ĐÂU
+→
+KIỂM TRA GÌ
+→
+GHI Ở ĐÂU
+→
+AI XỬ LÝ
+→
+PASS KHI NÀO
+→
+DỪNG KHI NÀO
+
+Nếu một lỗi thực tế không thể đi hết chuỗi trên,
+đó là:
+
+CANDIDATE VALIDATION FINDING
+
+và phải được dùng để tiếp tục hoàn thiện Specification.
+
+============================================================
+HẾT CHƯƠNG 23
+============================================================
