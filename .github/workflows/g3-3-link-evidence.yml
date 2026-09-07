@@ -1,0 +1,54 @@
+name: G3.3 Link Evidence
+on:
+  push:
+    branches:
+      - migration/vhldl-structure
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Markdown anchors and links
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import json, re
+          files = {
+              'LSVN_001': Path('history/LSVN_001.md'),
+              'TTVHVN_039': Path('literature/TTVHVN_039.md'),
+          }
+          anchors = {
+              'LSVN_001': ['#pdf-page-145', '#pdf-page-146'],
+              'TTVHVN_039': ['#pdf-page-36'],
+          }
+          out=[]
+          for book,p in files.items():
+              text=p.read_text(encoding='utf-8') if p.exists() else ''
+              item={'book':book,'path':str(p),'exists':p.exists(),'size':len(text.encode('utf-8')),'anchors':{}}
+              for a in anchors[book]:
+                  item['anchors'][a] = {'count': text.count(a), 'sample_lines': [f'{i+1}: {line[:500]}' for i,line in enumerate(text.splitlines()) if a in line][:5]}
+              out.append(item)
+          # Cross-reference candidates: actual Markdown links mentioning the target anchors/files.
+          for item in out:
+              p=Path(item['path'])
+              if not p.exists():
+                  item['links']=[]
+                  continue
+              lines=p.read_text(encoding='utf-8').splitlines()
+              hits=[]
+              for i,line in enumerate(lines,1):
+                  if ('LSVN_001.md' in line or 'TTVHVN_039.md' in line or '#pdf-page-' in line) and re.search(r'\[[^]]+\]\([^)]*\)', line):
+                      hits.append(f'{i}: {line[:1000]}')
+              item['links']=hits[:100]
+          Path('g3.3-evidence.json').write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8')
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          PY
+      - name: Upload evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: g3-3-link-evidence
+          path: g3.3-evidence.json
