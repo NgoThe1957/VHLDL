@@ -10,13 +10,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify Markdown anchors and links
+      - name: Verify Markdown anchors and actual cross-file links
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
           import json, re
+
           files = {
               'LSVN_001': Path('history/LSVN_001.md'),
               'TTVHVN_039': Path('literature/TTVHVN_039.md'),
@@ -28,22 +29,30 @@ jobs:
           out=[]
           for book,p in files.items():
               text=p.read_text(encoding='utf-8') if p.exists() else ''
-              item={'book':book,'path':str(p),'exists':p.exists(),'size':len(text.encode('utf-8')),'anchors':{}}
+              lines=text.splitlines()
+              item={'book':book,'path':str(p),'exists':p.exists(),'size':len(text.encode('utf-8')),'anchors':{},'cross_file_links':[]}
               for a in anchors[book]:
-                  item['anchors'][a] = {'count': text.count(a), 'sample_lines': [f'{i+1}: {line[:500]}' for i,line in enumerate(text.splitlines()) if a in line][:5]}
-              out.append(item)
-          # Cross-reference candidates: actual Markdown links mentioning the target anchors/files.
-          for item in out:
-              p=Path(item['path'])
-              if not p.exists():
-                  item['links']=[]
-                  continue
-              lines=p.read_text(encoding='utf-8').splitlines()
-              hits=[]
+                  pat=re.escape(a)+r'(?!\d)'
+                  hits=[f'{i+1}: {line[:500]}' for i,line in enumerate(lines) if re.search(pat,line)]
+                  item['anchors'][a]={'count':len(hits),'sample_lines':hits[:5]}
               for i,line in enumerate(lines,1):
-                  if ('LSVN_001.md' in line or 'TTVHVN_039.md' in line or '#pdf-page-' in line) and re.search(r'\[[^]]+\]\([^)]*\)', line):
-                      hits.append(f'{i}: {line[:1000]}')
-              item['links']=hits[:100]
+                  for m in re.finditer(r'\[[^\]]+\]\(([^)]+)\)', line):
+                      target=m.group(1)
+                      if target.startswith('../') or target.startswith('./'):
+                          item['cross_file_links'].append(f'{i}: {target}')
+              out.append(item)
+
+          targets = [
+              ('literature/TTVHVN_039.md','history/LSVN_001.md#pdf-page-145'),
+              ('literature/TTVHVN_039.md','history/LSVN_001.md#pdf-page-146'),
+          ]
+          for src,target in targets:
+              p=Path(src)
+              lines=p.read_text(encoding='utf-8').splitlines() if p.exists() else []
+              exact=[f'{i+1}: {line[:1000]}' for i,line in enumerate(lines) if target in line]
+              print(f'CROSSREF {src} -> {target}: {len(exact)}')
+              for h in exact[:5]: print(h)
+
           Path('g3.3-evidence.json').write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8')
           print(json.dumps(out,ensure_ascii=False,indent=2))
           PY
