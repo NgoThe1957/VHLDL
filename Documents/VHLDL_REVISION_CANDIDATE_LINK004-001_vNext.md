@@ -2,54 +2,107 @@
 
 > **Status: CANDIDATE — NOT FROZEN**
 >
-> This document defines the controlled revision candidate for the current Golden/Regression cycle. It does not replace the current baseline until the required regression evidence is reviewed and accepted.
+> This document is the controlled revision candidate for the current Golden/Regression cycle. It must not silently replace the locked baseline. Any baseline change requires Project Office review and Change Log entry.
 
-## 1. Purpose
+## 1. Scope
 
-This candidate addresses the controlled revision of Markdown extraction, page traceability, chapter-heading classification, and cross-reference evidence for the VHLDL pilot artifacts.
+This candidate covers controlled revision of Markdown extraction, page traceability, chapter-heading classification, page/header/footer handling, entity evidence, and cross-reference/link evidence for the VHLDL pilot.
 
 ## 2. Locked Change Requirements
 
 ### MCR-LINK004-001 — Chapter Heading vs Running Header
-Distinguish true chapter headings from running headers/page headers using page position, structure, and contextual evidence. A repeated running header must not be promoted to a chapter heading.
+Distinguish true Chapter Heading from Running Header/Page Header using position, page structure, and context. Repeated running headers must not be promoted to chapter headings.
 
 ### MCR-LINK004-002 — Header/Footer/Page Number Classification
-Classify header, footer, and page-number material from PDF evidence. Do not delete numeric content merely because it resembles a page number when it belongs to the source content.
+Classify header/footer/page-number material from PDF evidence. Do not delete numeric content when it belongs to source content.
 
 ### MCR-LINK004-003 — Chapter Heading OCR Normalization
-Normalize OCR errors in chapter headings without changing source content, order, meaning, or heading hierarchy.
+Normalize OCR errors in Chapter Heading while preserving original content, order, meaning, and heading level.
 
-### MCR-LINK004-004 — Deterministic PDF Page Anchors
-For every represented PDF page, generate exactly one deterministic anchor in the form `#pdf-page-N`, where `N` is the technical PDF page number. Anchors must be unique, exact, and resistant to prefix collisions (`#pdf-page-36` must not be confused with `#pdf-page-360`).
+### MCR-LINK004-004 — Deterministic PDF Page Anchor
+Every represented PDF page must have a deterministic anchor `#pdf-page-N`, where `N` is the technical PDF page number. Anchors must be unique and exact; `#pdf-page-36` must not match `#pdf-page-360`.
 
 ### MCR-LINK004-005 — PDF Page ↔ Markdown Evidence
-A page-mapping claim is PASS only when the PDF page and the corresponding Markdown page marker/anchor can be independently evidenced. No page mapping may be extrapolated from a single sample without a validated rule.
+A page-mapping claim is PASS only when the PDF page and corresponding Markdown page marker/anchor are independently evidenced. Do not extrapolate a complete mapping from an isolated sample.
 
 ### MCR-LINK004-006 — Printed Page Separation
-`Printed_Page` is a separate field from `PDF_Page`. It may be populated only when the printed page number is independently evidenced from the source. Otherwise it remains `UNKNOWN`.
+`Printed_Page` is distinct from `PDF_Page`. Populate `Printed_Page` only when independently evidenced by the source; otherwise retain `UNKNOWN`.
 
-### MCR-LINK004-007 — Actual Cross-file Markdown Links
-A cross-reference is PASS only when an actual Markdown link exists, resolves to the intended target artifact, and points to the intended anchor. A Workbook record alone is insufficient evidence.
+### MCR-LINK004-007 — Actual Cross-file Markdown Link
+A cross-reference is PASS only when an actual Markdown link exists and points to the intended target artifact and anchor. A Workbook record alone is insufficient evidence.
 
 ### MCR-LINK004-008 — Cross-link Target Integrity
-For each accepted cross-file link, verify source file, target file, target anchor, and link syntax. Broken, missing, or ambiguous links remain HOLD.
+Verify source file, target file, target anchor, and link syntax for every accepted cross-file link. Missing, broken, or ambiguous links remain HOLD.
 
-## 3. Regression Requirement
+## 3. Data / Traceability Contract
 
-The LSVN_001 PDF evidence currently establishes at least:
+The controlled traceability contract requires, as applicable:
+
+- `BookID`
+- Source Book ID
+- `Volume`
+- `Chapter`
+- `Section`
+- `PDF_Page`
+- `Printed_Page`
+- `Anchor_ID`
+- `Relative_Link`
+- Source Reference / Evidence
+- reverse traceability where applicable
+
+Stable IDs must remain unique. Existing locked mappings must not be broken by introducing new IDs.
+
+## 4. Page Mapping Gate
+
+Required relation:
+
+`Printed Page ↔ PDF Page ↔ Markdown`
+
+If Printed Page cannot be independently established, it remains `UNKNOWN`. PDF Page remains the technical traceability key. Markdown anchors must use the PDF page number, not the printed page number.
+
+Current regression evidence includes:
+
 - PDF Page 144 ↔ Printed Page 142
 - PDF Page 145 ↔ Printed Page 143
 
-These are regression evidence points. They must not be converted into a universal page-offset assumption without broader validation.
+These observations are regression evidence and do not by themselves authorize a universal page offset.
 
-## 4. Acceptance Gates
+## 5. Link Gate
 
-- Anchor Gate: all required pilot anchors exist exactly once.
-- Page Mapping Gate: PDF Page ↔ Printed Page ↔ Markdown is evidenced where claimed.
-- Link Gate: actual cross-file Markdown links are present and resolve correctly.
-- Entity Gate: entity ID/type/source evidence remain valid and non-duplicated.
-- Golden Acceptance remains HOLD until the complete required regression evidence passes.
+A Workbook CrossReference row is not sufficient for PASS. The actual Markdown link must be present and independently verified to resolve to the intended target file and target anchor.
 
-## 5. Baseline Protection
+## 6. Entity Gate
 
-The current five-sheet `Index.xlsx` remains the baseline. The candidate 14-sheet data model does not replace it without a separate approved Change Request. Source PDFs are immutable and are never modified to satisfy QA.
+An entity may be accepted only when it has a valid stable ID, no duplicate identity, source evidence, and the correct entity type. The system must not invent entities or silently reconcile ambiguous source evidence.
+
+## 7. Minimum Controlled Output
+
+The extraction/revision process is expected to produce, as applicable:
+
+- Markdown
+- Workbook / Index
+- TOC
+- Search Index
+- Entities
+- Relationships
+- Anchor_ID
+- Relative_Link
+- Traceability
+- Cross-reference records
+- QA Evidence
+
+## 8. QA Status Vocabulary
+
+Use controlled statuses such as `PASS`, `PASS WITH NOTE`, `NEEDS REVIEW`, `FAILED`, and `HOLD` where governance requires a blocking state.
+
+## 9. Baseline Protection
+
+The current five-sheet `index/Index.xlsx` remains the current baseline. The proposed 14-sheet model is a candidate target and does not replace the current workbook without an approved Change Request and Change Log entry.
+
+Source PDFs are immutable. QA findings must not be hidden by changing source data.
+
+## 10. Acceptance Sequence
+
+`Revision Candidate → Change Requirements → Regression Tests + Evidence → QA → Project Office Review → GO/HOLD`
+
+Golden Acceptance remains HOLD until the required evidence passes. Mass Extraction must not begin merely because an artifact exists or a workflow succeeds.
