@@ -10,22 +10,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Verify Markdown anchors and actual cross-file links
+      - name: Verify exact anchors, page evidence and cross-file links
         shell: bash
         run: |
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
           import json, re
-
-          files = {
-              'LSVN_001': Path('history/LSVN_001.md'),
-              'TTVHVN_039': Path('literature/TTVHVN_039.md'),
-          }
-          anchors = {
-              'LSVN_001': ['#pdf-page-145', '#pdf-page-146'],
-              'TTVHVN_039': ['#pdf-page-36'],
-          }
+          files = {'LSVN_001': Path('history/LSVN_001.md'), 'TTVHVN_039': Path('literature/TTVHVN_039.md')}
+          anchors = {'LSVN_001': ['#pdf-page-144', '#pdf-page-145', '#pdf-page-146'], 'TTVHVN_039': ['#pdf-page-36']}
           out=[]
           for book,p in files.items():
               text=p.read_text(encoding='utf-8') if p.exists() else ''
@@ -41,18 +34,12 @@ jobs:
                       if target.startswith('../') or target.startswith('./'):
                           item['cross_file_links'].append(f'{i}: {target}')
               out.append(item)
-
-          targets = [
-              ('literature/TTVHVN_039.md','history/LSVN_001.md#pdf-page-145'),
-              ('literature/TTVHVN_039.md','history/LSVN_001.md#pdf-page-146'),
-          ]
+          targets=[('literature/TTVHVN_039.md','history/LSVN_001.md#pdf-page-145'),('literature/TTVHVN_039.md','history/LSVN_001.md#pdf-page-146')]
           for src,target in targets:
-              p=Path(src)
-              lines=p.read_text(encoding='utf-8').splitlines() if p.exists() else []
-              exact=[f'{i+1}: {line[:1000]}' for i,line in enumerate(lines) if target in line]
+              p=Path(src); lines=p.read_text(encoding='utf-8').splitlines() if p.exists() else []
+              exact=[f'{i}: {line[:1000]}' for i,line in enumerate(lines,1) if target in line]
               print(f'CROSSREF {src} -> {target}: {len(exact)}')
               for h in exact[:5]: print(h)
-
           Path('g3.3-evidence.json').write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding='utf-8')
           print(json.dumps(out,ensure_ascii=False,indent=2))
           PY
