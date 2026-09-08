@@ -1,0 +1,40 @@
+name: Rename legacy pilot Markdown
+
+on:
+  push:
+    branches:
+      - migration/vhldl-structure
+    paths:
+      - '.github/workflows/rename-legacy-pilots.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Rename legacy pilot artifacts
+        run: |
+          set -euo pipefail
+          changed=0
+          if [ -f history/LSVN_001.md ]; then
+            git mv history/LSVN_001.md history/LSVN_001.pilot-legacy.md
+            changed=1
+          fi
+          if [ -f literature/TTVHVN_039.md ]; then
+            git mv literature/TTVHVN_039.md literature/TTVHVN_039.pilot-legacy.md
+            changed=1
+          fi
+          if [ "$changed" -eq 1 ]; then
+            git config user.name 'VHLDL Automation'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add -A history/ literature/
+            git commit -m 'Archive legacy pilot Markdown artifacts'
+            git push origin HEAD:migration/vhldl-structure
+          else
+            echo 'No legacy pilot artifacts found; nothing to rename.'
+          fi
