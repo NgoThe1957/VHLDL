@@ -34,6 +34,9 @@ A cross-reference is PASS only when an actual Markdown link exists and points to
 ### MCR-LINK004-008 — Cross-link Target Integrity
 Verify source file, target file, target anchor, and link syntax for every accepted cross-file link. Missing, broken, or ambiguous links remain HOLD.
 
+### MCR-LINK004-009 — Page 27 Chapter Heading Normalization
+For LSVN_001 PDF Page 27, the source evidence establishes the chapter opening as `Chương I` followed by `VIỆT NAM THỜI KỲ NGUYÊN THỦY`, then `I. DẤU TÍCH NGƯỜI VƯỢN Ở VIỆT NAM`. The revision rule shall normalize only the OCR/layout spacing in the chapter-title line from `V I Ệ T N A M  T H Ờ I  K Ỳ  N G U Y Ê N  T H Ủ Y` to `VIỆT NAM THỜI KỲ NGUYÊN THỦY`, while preserving source wording, order, chapter level, and surrounding content. This rule is page/context-specific evidence and must not promote the repeated `Chương I ...` running headers observed on PDF Pages 29, 31, 33, and 35.
+
 ## 3. Data / Traceability Contract
 
 The controlled traceability contract requires, as applicable:
